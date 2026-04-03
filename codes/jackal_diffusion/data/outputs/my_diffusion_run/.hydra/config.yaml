@@ -1,0 +1,74 @@
+name: train_diffusion_lowdim
+_target_: jackal_diffusion.workspace.train_diffusion_lowdim_workspace.TrainDiffusionLowdimWorkspace
+task_name: ${task.name}
+exp_name: default
+obs_dim: ${task.obs_dim}
+action_dim: ${task.action_dim}
+n_obs_steps: 2
+n_action_steps: 8
+policy:
+  _target_: jackal_diffusion.policy.jackal_diffusion_lowdim_policy.JackalDiffusionLowdimPolicy
+  n_obs_steps: ${n_obs_steps}
+  n_action_steps: ${n_action_steps}
+  obs_dim: ${obs_dim}
+  action_dim: ${action_dim}
+  hidden_dim: 64
+  num_train_timesteps: 100
+  num_inference_steps: 10
+dataloader:
+  batch_size: 64
+  num_workers: 0
+  shuffle: true
+  pin_memory: false
+val_dataloader:
+  batch_size: 64
+  num_workers: 0
+  shuffle: false
+  pin_memory: false
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: 0.001
+  weight_decay: 1.0e-06
+training:
+  device: cpu
+  seed: 42
+  debug: false
+  resume: false
+  num_epochs: 500
+  gradient_accumulate_every: 1
+  rollout_every: 50
+  checkpoint_every: 50
+  val_every: 1
+  max_train_steps: null
+  max_val_steps: null
+  early_stop_loss: 0.005
+checkpoint:
+  topk:
+    monitor_key: test_mean_score
+    mode: max
+    k: 3
+    format_str: epoch={epoch:04d}-test_mean_score={test_mean_score:.3f}.ckpt
+  save_last_ckpt: true
+  save_last_snapshot: false
+task:
+  name: jackal_lowdim
+  obs_dim: 16
+  action_dim: 2
+  dataset:
+    _target_: jackal_diffusion.dataset.jackal_lowdim_dataset.JackalLowdimDataset
+    n_demos_per_side: 25
+    n_obs_steps: ${n_obs_steps}
+    n_action_steps: ${n_action_steps}
+    stride: 2
+    val_ratio: 0.1
+    seed: ${training.seed}
+  env_runner:
+    _target_: jackal_diffusion.env_runner.jackal_lowdim_runner.JackalLowdimRunner
+    n_rollouts: 50
+    start_seed: 999
+    max_steps: 300
+    exec_horizon: 1
+    xy_jitter: 0.3
+    theta_jitter: 0.2
+    save_plot: true
+    plot_name: latest_rollouts.png
